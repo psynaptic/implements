@@ -1,0 +1,3 @@
+name = Implements
+description = Discover which modules implement which hooks.
+core = 6.x

@@ -1,0 +1,57 @@
+<?php
+
+/**
+ * Implementation of hook_menu().
+ */
+function implements_menu() {
+  $items = array();
+
+  $items['admin/settings/implements'] = array(
+    'title' => 'Implements',
+    'page callback' => 'implements_callback',
+    'access arguments' => array('administer implements'),
+  );
+
+  return $items;
+}
+
+function implements_callback() {
+  $data = implements_get_module_data('cron');
+  foreach ($data as $key => $value) {
+    $output .= '<h2>' . $data[$key]['name'] . '</h2>';
+    $output .= '<code>' . $data[$key]['path'] . '</code>';
+    $output .= $data[$key]['function'];
+  }
+
+  return $output;
+}
+
+function implements_get_module_data($function) {
+  $modules = module_implements($function);
+
+  foreach ($modules as $key => $module) {
+    $path = realpath(drupal_get_path('module', $module)) .'/'. $module .'.module';
+    $data[$key] = array(
+      'name' => $module,
+      'path' => $path,
+      'function' => implements_parse_function($function, file_get_contents($path)),
+    );
+  }
+  
+  return $data;
+}
+
+function implements_parse_function($function, $source) {
+  // Convert newlines.
+  $source = str_replace(array("\r\n", "\r"), array("\n", "\n"), $source);
+
+  // Match a whole function.
+  preg_match('%^function (&?([a-zA-Z0-9_]+)_' . $function . '\(.*?)\s*\{\n.*%sm', $source, $matches);
+  $pos = strpos($matches[0], "\n}\n\n");
+  $output = substr($matches[0], 0, $pos) . "\n}\n";
+
+  // Add basic syntax highlighting.
+  $output = highlight_string("<?php\n". $output, TRUE);
+
+  return $output;
+}
